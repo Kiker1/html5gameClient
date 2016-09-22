@@ -4,46 +4,59 @@
     <script src="js/createjs-2015.11.26.combined.js"></script>
     <script src="js/jquery-3.1.0.min.js"></script>
     <script>
-
-    </script>
-    <script>
-
         var leftArrow = 37;
         var rightArrow = 39;
         var upArrow = 38;
         var downArrow = 40;
-        var data1 = [];
+        var drawData = {"objects": []};
         var stage;
         var socket;
-        var isOpened = false;
+        var isSocketOpened = false;
+        var isLogined = false;
+
+        var player = {"id": -1};
 
         function createSocket()
         {
-            socket = new WebSocket("ws://25.61.159.65:80");//25.61.159.65:80 //echo.websocket.org
+            socket = new WebSocket("ws://25.61.159.65:80/api");//25.61.159.65:80 //echo.websocket.org
             socket.onmessage = function (event) {
-                data1 = JSON.parse(event.data)
+
+                var json = JSON.parse(event.data);
+                switch (json.action) {
+                    case "login": {player = json.player}
+                        isLogined = true;
+                        console.log("Logined with id " + player.id);
+                        break;
+                    case "update": {drawData = json}
+                        break;
+                }
             };
+
             socket.onclose = function () {
-                isOpened = false;
+                isSocketOpened = false;
                 console.log("I`ve died for your sins!");
 //                setTimeout(createSocket, 3000)
             };
-            socket.onerror = socket.onclose;
+            socket.onerror = function () {
+                isSocketOpened = false;
+                console.log("Socket error");
+            };
             socket.onopen = function () {
-                isOpened = true;
+                isSocketOpened = true;
+                socket.send(JSON.stringify({"action": "login", "name": "Jabba the Hutt"}));
             };
         }
 
         function init()
         {
             stage = new createjs.Stage("canvas");
-//            createSocket();
+            createSocket();
 
             this.document.onkeydown = keydown;
             this.document.onkeyup = keyup;
 
-
             createjs.Ticker.addEventListener("tick", tick)
+
         }
 
         var keys = {};
@@ -60,53 +73,97 @@
             var shape = new createjs.Shape();
             switch (o.objectType) {
                 case "cell":
-                    shape.graphics.beginFill("#900909").drawCircle(o.x, o.y, size);
+//                    console.log("cell");
+                    shape.graphics.beginFill("#900909").drawRoundRectComplex(0, 0, size , size * 2,
+                        size / 3,
+                        size / 3,
+                        0,
+                        0);
+//                    shape.graphics.beginFill("#900909").drawRect(0, 0, size, size);
+                    shape.regX = size / 2;
+                    shape.regY = size;
                     break;
                 case "protein":
-                    shape.graphics.beginFill("#101010").drawRect(o.x - size / 2, o.y - size / 2, size, size);
-                    break
+//                    console.log("protein");
+                    shape.graphics.beginFill("#101010").drawCircle(0, 0, size / 2);
+                    shape.regX = size / 2;
+                    shape.regY = size / 2;
+                    break;
             }
+            shape.x = o.x;
+            shape.y = o.y;
+            if (o.angle >= 0 && o.angle < 360)
+                shape.rotation = o.angle;
             stage.addChild(shape);
             shape.name = o.id.toString();
         }
 
-        function handleObject(o) {
-            createObject(o);
-        }
+        //        function handleObject(o) {
+        //            createObject(o);
+        //        }
 
-        var direction = 0;
+        var directionAngle = 0;
+
+        /* up       360
+         * right    90
+         * down     180
+         * left     270
+         * none     -1
+         * */
 
         function processKeyboard() {
             if (keys[leftArrow])
-                direction = 1;
+                directionAngle = 270;
             else if (keys[rightArrow])
-                direction = 3;
+                directionAngle = 90;
             else if (keys[upArrow])
-                direction = 2;
+                directionAngle = 360;
             else if (keys[downArrow])
-                direction = 4;
-            else direction = 0;
+                directionAngle = 180;
+            else directionAngle = -1;
+
+
+//            if (keys[leftArrow]) {
+//                directionAngle = 270;
+//                if (keys[upArrow]) directionAngle-=45;
+//                if (keys[downArrow]) directionAngle+=45;
+//            }
+//            else if (keys[rightArrow])
+//                directionAngle = 90;
+//            else if (keys[upArrow])
+//                directionAngle = 360;
+//            else if (keys[downArrow])
+//                directionAngle = 180;
+//            else directionAngle = -1;
         }
 
         function tick()
         {
-            var objArr = data1;
+//            drawData.objects[0].angle++;
+
+            var objArr = drawData.objects;
             stage.removeAllChildren();
-            objArr.forEach(handleObject);
+            objArr.forEach(createObject);
             stage.update();
 
-            //calculate direction
+            //calculate directionAngle
             processKeyboard();
 
-            if (isOpened)
-                socket.send({"id": 0, "direction": direction});
+            if (isSocketOpened && isLogined) {
+                var o = {"action": "update", "id": player.id};
+//                if (directionAngle != -1)
+                o.angle = directionAngle;
+                socket.send(JSON.stringify(o));
+
+
+            }
+
         }
     </script>
 </head>
 <body onload="init();">
 
-<H1>Ultimate game ever</H1>
-<canvas id="canvas" width="600" height="300" style="border: 1px solid #000000">
+<canvas id="canvas" width="500" height="500" style="border: 1px solid #000000">
 
 </canvas>
 

@@ -1,0 +1,114 @@
+<!doctype html>
+<html class="no-js" lang="">
+<head>
+    <script src="js/createjs-2015.11.26.combined.js"></script>
+    <script src="js/jquery-3.1.0.min.js"></script>
+    <script>
+
+    </script>
+    <script>
+
+        var leftArrow = 37;
+        var rightArrow = 39;
+        var upArrow = 38;
+        var downArrow = 40;
+        var data1 = [];
+        var stage;
+        var socket;
+        var isOpened = false;
+
+        function createSocket()
+        {
+            socket = new WebSocket("ws://25.61.159.65:80");//25.61.159.65:80 //echo.websocket.org
+            socket.onmessage = function (event) {
+                data1 = JSON.parse(event.data)
+            };
+            socket.onclose = function () {
+                isOpened = false;
+                console.log("I`ve died for your sins!");
+//                setTimeout(createSocket, 3000)
+            };
+            socket.onerror = socket.onclose;
+            socket.onopen = function () {
+                isOpened = true;
+            };
+        }
+
+        function init()
+        {
+            stage = new createjs.Stage("canvas");
+//            createSocket();
+
+            this.document.onkeydown = keydown;
+            this.document.onkeyup = keyup;
+
+
+            createjs.Ticker.addEventListener("tick", tick)
+        }
+
+        var keys = {};
+        function keydown(event) {
+            keys[event.keyCode] = true;
+        }
+        function keyup(event) {
+            delete keys[event.keyCode];
+        }
+
+        function createObject(o)
+        {
+            var size = 10;
+            var shape = new createjs.Shape();
+            switch (o.objectType) {
+                case "cell":
+                    shape.graphics.beginFill("#900909").drawCircle(o.x, o.y, size);
+                    break;
+                case "protein":
+                    shape.graphics.beginFill("#101010").drawRect(o.x - size / 2, o.y - size / 2, size, size);
+                    break
+            }
+            stage.addChild(shape);
+            shape.name = o.id.toString();
+        }
+
+        function handleObject(o) {
+            createObject(o);
+        }
+
+        var direction = 0;
+
+        function processKeyboard() {
+            if (keys[leftArrow])
+                direction = 1;
+            else if (keys[rightArrow])
+                direction = 3;
+            else if (keys[upArrow])
+                direction = 2;
+            else if (keys[downArrow])
+                direction = 4;
+            else direction = 0;
+        }
+
+        function tick()
+        {
+            var objArr = data1;
+            stage.removeAllChildren();
+            objArr.forEach(handleObject);
+            stage.update();
+
+            //calculate direction
+            processKeyboard();
+
+            if (isOpened)
+                socket.send({"id": 0, "direction": direction});
+        }
+    </script>
+</head>
+<body onload="init();">
+
+<H1>Ultimate game ever</H1>
+<canvas id="canvas" width="600" height="300" style="border: 1px solid #000000">
+
+</canvas>
+
+</body>
+</html>

@@ -18,7 +18,7 @@
 
         function createSocket()
         {
-            socket = new WebSocket("ws://25.61.159.65:80/api");//25.61.159.65:80 //echo.websocket.org
+            socket = new WebSocket("ws://172.31.17.236:8080/api");//25.61.159.65:80 //echo.websocket.org //172.31.17.236 amazon
             socket.onmessage = function (event) {
 
                 var json = JSON.parse(event.data);
@@ -73,13 +73,11 @@
             var shape = new createjs.Shape();
             switch (o.objectType) {
                 case "cell":
-//                    console.log("cell");
                     shape.graphics.beginFill("#900909").drawRoundRectComplex(0, 0, size , size * 2,
                         size / 3,
                         size / 3,
                         0,
                         0);
-//                    shape.graphics.beginFill("#900909").drawRect(0, 0, size, size);
                     shape.regX = size / 2;
                     shape.regY = size;
                     break;
@@ -98,12 +96,6 @@
             shape.name = o.id.toString();
         }
 
-        //        function handleObject(o) {
-        //            createObject(o);
-        //        }
-
-        var directionAngle = 0;
-
         /* up       360
          * right    90
          * down     180
@@ -111,6 +103,7 @@
          * none     -1
          * */
 
+        var directionAngle = 0;
         function processKeyboard() {
             if (keys[leftArrow])
                 directionAngle = 270;
